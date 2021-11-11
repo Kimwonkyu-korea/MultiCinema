@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.one.multicinemaback.dao.MypageDao">
+
+<select id="pwCheck" parameterType="com.one.multicinemaback.dto.UserDto" resultType="com.one.multicinemaback.dto.UserDto">
+	SELECT * 
+	FROM USERS
+	WHERE id=#{id}AND pw=#{pw}
+</select>
+
+<update id="pwUp" parameterType="com.one.multicinemaback.dto.UserDto">
+	UPDATE USERS
+	SET pw=#{id}, name=#{name}, email=#{email}, phone=#{phone} 
+	WHERE ID=#{id}
+</update>
+
+
+<select id="mypage" parameterType="com.one.multicinemaback.dto.MypageDto" resultType="com.one.multicinemaback.dto.MypageDto">
+	SELECT tnum, msnum, id, title, bdate, sdate, edate, theater, snum, price		
+	FROM TICKET 
+	WHERE ID=#{id}
+</select>
+
+<select id="getTodayList" parameterType="String" resultType="com.one.multicinemaback.dto.MypageDto">
+	SELECT tnum, msnum, id, title, bdate, sdate, edate, theater, snum, price
+	FROM TICKET
+	WHERE DATE_FORMAT(sdate, '%Y-%M-%D') =  DATE_FORMAT(NOW(), '%Y-%M-%D') AND ID=#{id}
+	ORDER BY sdate;
+</select>
+
+<select id="getPastList" parameterType="String" resultType="com.one.multicinemaback.dto.MypageDto">
+	SELECT tnum, msnum, id, title, bdate, sdate, edate, theater, snum, price
+	FROM TICKET
+	WHERE DATE_FORMAT(sdate, '%Y-%M-%D') >  DATE_FORMAT(NOW(), '%Y-%M-%D') AND ID=#{id}
+	ORDER BY sdate DESC;
+</select>
+<!-- 
+ -->
+
+</mapper>
