@@ -1,0 +1,235 @@
+<meta charset="UTF-8">
+<script>
+$.datepicker.setDefaults({
+    dateFormat: 'yyyy-mm-dd',
+    prevText: '이전 달',
+    nextText: '다음 달',
+    monthNames: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+    monthNamesShort: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+    dayNames: ['일', '월', '화', '수', '목', '금', '토'],
+    dayNamesShort: ['일', '월', '화', '수', '목', '금', '토'],
+    dayNamesMin: ['일', '월', '화', '수', '목', '금', '토'],
+    showMonthAfterYear: true,
+    yearSuffix: '년',
+ 	 // minDate: "+1D",
+ 	minDate: "0",
+ 	  onSelect: function (dateText, inst) {
+ 		  	// console.log($('#tkdateR').val());
+ 		    //  console.log(dateText);
+ 			$('#tkdateR').val(dateText.substring(4,14)); 
+ 			$.ajax({
+ 				url : "http://localhost:3000/mtitle",
+ 				type : 'post',
+ 				data : { 'sdate':$("#tkdateR").val() },
+ 				success : function(list) {
+ 					
+ 					$("#mtitle").empty();	// append 초기화
+ 					$("#mtime").empty();
+ 					// alert(list.length);
+ 					
+ 					
+ 					if(list.length == 0){
+ 						$("#mtitle").empty();
+ 						let no =  "<option  value=''>" + '***금일 상영하실 영화가 없습니다.***' + "</option>";
+ 						$("#mtitle").append(no);
+ 						
+ 					}else if (list.length > 0) {
+ 						let first = "<option value=''>"+ '영화 선택' +"<option>";
+ 	 					$("#mtitle").append(first);
+ 	 					
+ 						for (i = 0; i < list.length; i++) {
+ 						
+ 							let str = "<option vlaue='list[i].title'>"+list[i].title+ "</option>";
+ 							$("#mtitle").append(str);
+ 						}
+ 					}
+ 				},
+ 				error : function() {
+ 					alert('error');
+ 				}
+ 			});
+ 	  }
+});
+$(function() {
+  $( "#tkdate" ).datepicker();
+});
+
+
+
+$(document).ready(function() {
+	
+	let today = new Date();
+
+	let year = today.getFullYear();
+	let month = ('0' + (today.getMonth() + 1)).slice(-2);
+	let day = ('0' + today.getDate()).slice(-2);
+	let dateString = year + '-' + month  + '-' + day;
+
+	let hours = ('0' + today.getHours()).slice(-2); 
+	let minutes = ('0' + today.getMinutes()).slice(-2);
+	let seconds = ('0' + today.getSeconds()).slice(-2); 
+
+	let timeString = hours + ':' + minutes  + ':' + seconds;
+
+	// alert(dateString+" "+timeString);	//년도-월-일 + 시:분:초
+	let todayTime = (dateString+" "+timeString);
+	
+	$("#mtitle").on("change", function() {
+		let mtitle = this.value;
+		// alert(this.value);
+
+		$.ajax({
+			url:'http://localhost:3000/mtime',
+			type:'post',
+			data:{ 'title':this.value },
+			success:function(list){
+			//	alert('success');
+				
+					$("#mtime").empty();	// append 초기화
+					// alert(list.length);
+					
+				let first = "<option value=''>"+ '시간 선택' +"<option>";
+	 			$("#mtime").append(first);
+	 					
+					for (i = 0; i < list.length; i++) {
+						if (list[i].sdate >= todayTime ) {
+							let str = "<option vlaue='list[i].sdate'>"+list[i].sdate.substring(11, 16) + ' ~ ' + list[i].edate.substring(11, 16)+ "</option>";
+							$("#mtime").append(str);
+						}
+					}
+					
+				},
+			error:function(){
+				alert('error');
+			}		
+		});
+	});
+});
+
+
+$("#seat").hide();	// 좌석 테이블
+
+let test = [];
+let selectedSeats = new Array();
+let selectedSeatsMap = [];
+const seatWrapper = document.querySelector(".seat-wrapper");
+let clicked = "";
+let div = "";
+
+for (let i = 0; i < 7; i++) {
+    div = document.createElement("div");
+    seatWrapper.append(div);
+    for (let j = 0; j < 7; j++) {
+        const input = document.createElement('input');
+        input.type = "button";
+        input.name = "seats"
+        input.classList = "seat";
+        //3중포문을 사용하지 않기위해 
+        mapping(input, i, j);
+        div.append(input);
+        input.addEventListener('click', function(e) {
+            console.log(e.target.value);
+            //중복방지 함수
+            selectedSeats = selectedSeats.filter((element, index) => selectedSeats.indexOf(element) != index);
+
+            //click class가 존재할때(제거해주는 toggle)
+            if (input.classList.contains("clicked")) {
+                input.classList.remove("clicked");
+                clicked = document.querySelectorAll(".clicked");
+                selectedSeats.splice(selectedSeats.indexOf(e.target.value), 1);
+                clicked.forEach((data) => {
+                    selectedSeats.push(data.value);
+                });
+                //click class가 존재하지 않을때 (추가해주는 toggle)
+            } else {
+                input.classList.add("clicked");
+                clicked = document.querySelectorAll(".clicked");
+                clicked.forEach((data) => {
+                    selectedSeats.push(data.value);
+                })
+            }
+            console.log(selectedSeats);
+        })
+    }
+}
+
+function mapping(input, i, j) {
+    if (i === 0) {
+        input.value = "A" + j;
+    } else if (i === 1) {
+        input.value = "B" + j;
+    } else if (i === 2) {
+        input.value = "C" + j;
+    } else if (i === 3) {
+        input.value = "D" + j;
+    } else if (i === 4) {
+        input.value = "E" + j;
+    } else if (i === 5) {
+        input.value = "F" + j;
+    } else if (i === 6) {
+        input.value = "G" + j;
+    }
+}
+
+$("#mtime").on("change", function() {
+	$("#seat").show();	
+});
+
+</script>
+
+<h2 align="center">티켓예매 페이지</h2><br>
+<div align="center">
+<table border="1">
+<col width="350px"><col width="350px"><col width="350px">
+<thead>
+	<tr>
+		<th>상영 날짜</th>
+		<th>영화 제목</th>
+		<th>상영 시간</th>
+	</tr>
+</thead>
+
+<tbody>
+	<tr>
+		<th>
+			<div class="col" >
+				<br><div id="tkdate"></div> 
+				<input type="hidden" id="tkdateR" value="">
+			</div>
+		</th>
+		
+		<th>
+			<select id="mtitle">
+			</select>
+		</th>
+		
+		<th>
+			<select id="mtime">
+			</select>
+		</th>
+	</tr>
+</tbody>
+</table>
+<br><br>
+
+
+<table id="seat" border="1"><col width="700px"><col width="350px">
+<thead align="center">
+	<tr>
+		<th>좌석선택</th>
+		<th>내역/결제</th>
+	</tr>
+</thead>
+
+<tbody align="center">
+	<tr>
+		<th>
+			 <div class="seat-wrapper"></div>
+		</th>
+		<th>
+			 결제
+		</th>
+	</tr>
+</tbody>
+</table>
+</div>
