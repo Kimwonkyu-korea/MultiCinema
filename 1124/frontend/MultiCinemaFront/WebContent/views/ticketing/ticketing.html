@@ -1,0 +1,259 @@
+<meta charset="UTF-8">
+<script type="text/javascript">
+// 상영 날짜
+$.datepicker.setDefaults({
+    dateFormat: 'yyyy-mm-dd',
+    prevText: '이전 달',
+    nextText: '다음 달',
+    monthNames: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+    monthNamesShort: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+    dayNames: ['일', '월', '화', '수', '목', '금', '토'],
+    dayNamesShort: ['일', '월', '화', '수', '목', '금', '토'],
+    dayNamesMin: ['일', '월', '화', '수', '목', '금', '토'],
+    showMonthAfterYear: true,
+    yearSuffix: '년',
+ 	 // minDate: "+1D",
+ 	minDate: "0",
+ 	  onSelect: function (dateText, inst) {
+ 		  	// console.log($('#tkdateR').val());
+ 		    //  console.log(dateText);
+ 			$('#tkdateR').val(dateText.substring(4,14)); 
+ 			$.ajax({
+ 				url : "http://localhost:3000/mtitle",
+ 				type : 'post',
+ 				data : { 'sdate':$("#tkdateR").val() },
+ 				success : function(list) {
+ 					
+ 					$("#mtitle").empty();	// append 초기화
+ 					$("#mtime").empty();
+ 					$("#seat").hide();	
+ 					// alert(list.length);
+ 					
+ 					
+ 					if(list.length == 0){
+ 						$("#mtitle").empty();
+ 						let no =  "<option>" + '***금일 상영하실 영화가 없습니다.***' + "</option>";
+ 						$("#mtitle").append(no);
+ 						
+ 					}else if (list.length > 0) {
+ 						$("#mtitle").empty();
+ 						let first = "<option>"+ '영화 선택' +"</option>";
+ 	 					$("#mtitle").append(first);
+ 	 					
+ 				 		for (i = 0; i < list.length; i++) {
+ 							let str = "<option>"+list[i].title+ "</option>";
+ 							$("#mtitle").append(str);  
+ 						}
+ 					}
+ 				},
+ 				error : function() {
+ 					alert('error');
+ 				}
+ 			});
+ 	  }
+});
+$(function() {
+  $( "#tkdate" ).datepicker();
+});
+
+
+// 영화 제목
+$(document).ready(function() {
+	
+	let today = new Date();
+
+	let year = today.getFullYear();
+	let month = ('0' + (today.getMonth() + 1)).slice(-2);
+	let day = ('0' + today.getDate()).slice(-2);
+	let dateString = year + '-' + month  + '-' + day;
+
+	let hours = ('0' + today.getHours()).slice(-2); 
+	let minutes = ('0' + today.getMinutes()).slice(-2);
+	let seconds = ('0' + today.getSeconds()).slice(-2); 
+
+	let timeString = hours + ':' + minutes  + ':' + seconds;
+
+	// alert(dateString+" "+timeString);	//년도-월-일 + 시:분:초
+	let todayTime = (dateString+" "+timeString);
+	
+	$("#mtitle").on("change", function() {
+		let mtitle = this.value;
+		
+		let title = $("#mtitle").val();
+		let date = $("#mtime").val();	
+		
+		// 선택 시 좌석화면 유 무
+		$("#seat").hide();
+		// alert(this.value);
+
+		$.ajax({
+			url:'http://localhost:3000/mtime',
+			type:'post',
+			data:{ 'title':this.value },
+			success:function(list){
+			//	alert('success');
+				$("#mtime").empty();	// append 초기화
+					// alert(list.length);
+				let first = "<option>"+ '시간 선택' +"</option>";
+	 			$("#mtime").append(first);
+	 					
+					for (i = 0; i < list.length; i++) {
+						if (list[i].sdate >= todayTime ) {
+							let mdate = "<option>"+list[i].sdate.substring(11, 16) + ' ~ ' + list[i].edate.substring(11, 16)+ "</option>";
+							$("#mtime").append(mdate);
+						}
+						let mtheater = "<input type='hidden' id='"+list[i].theater+"'>";
+						// alert(list[i].theater);
+						$("#mtheater").append(mtheater);
+						$("#paytheater").val(list[i].theater);
+					}
+					
+				},
+			error:function(){
+				alert('error');
+			}		
+		});
+	});
+});
+
+$("#seat").hide();	// 좌석 테이블
+
+var preseat="";
+
+// 상영 시간
+$("#mtime").on("change", function() {
+	let sdate = $("#tkdateR").val()+" "+$("#mtime").val().substring(0, 5); 
+	let paysdate = $("#tkdateR").val()+" "+$("#mtime").val().substring(0, 13); 
+	let mtitle = $("#mtitle").val();
+	let date = $("#mtime").val();	// 상영 시간
+	let ticket = $("#ticket").val();
+	
+	$("#seat").show();		// 좌석보여주기
+	$("#ticket").empty();	// 초기화
+	
+	var preseat="";
+	for(var i=1;i<8;i++){
+		for(var j=1;j<18;j++){
+			var input = "<input type='checkbox' style='width:30px;height:30px;' class='seat' id='"+String.fromCharCode(64+i)+j+"'>";
+			$("#ticket").append(input);
+			if(j==4 || j==13) {
+				$("#ticket").append("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
+			}
+		}
+		$("#ticket").append("<br>");
+	}
+	
+	$(".seat").click(function(){
+		$("#tpay").hide();
+		if(preseat!=="" && preseat!==this.id){
+			$("#"+preseat).prop("checked",false);
+		}
+		preseat=this.id;
+		$("#payseat").val(preseat);	// 결제창에서 좌석번호
+	});
+	
+	// 날짜, 제목, 시간에 따른 좌석 보여주기
+	$.ajax({
+		url:'http://localhost:3000/seat',
+		type:'post',
+		data:{ 'title' : mtitle, 'sdate':sdate},
+		success:function(list){
+			// alert('success');
+			// alert(list.length);
+			
+			for(i=0; i < list.length; i++){
+				if($("#"+list[i])){		// 아이디가 일치하면
+					$("#"+list[i]).prop("checked",true);	// 체크해준다.
+					$("#"+list[i]).prop("disabled",true);	// 수정못하게 해줌
+				}
+				
+			}
+		},
+		error:function(){
+			alert('error');
+		}
+	});
+	$("#tpay").hide();	// 금액가리기
+	alert(mtitle);
+	alert(sdate);
+	
+	$("#paytitle").val(mtitle);
+	$("#paysdate").val(paysdate);
+});
+$("#seatpick").click(function () {
+	$("#tpay").show();
+});
+
+</script>
+
+<h2 align="center">티켓예매 페이지</h2><br>
+<div align="center">
+<table border="1">
+<col width="350px"><col width="350px"><col width="350px">
+<thead>
+	<tr>
+		<th>상영 날짜</th>
+		<th>영화 제목</th>
+		<th>상영 시간</th>
+	</tr>
+</thead>
+
+<tbody>
+	<tr>
+		<th>
+			<div align="center" class="col" >
+				<br><div id="tkdate"></div> 
+				<input type="hidden" id="tkdateR">
+			</div>
+		</th>
+		
+		<th>
+			<select id="mtitle">
+			</select>
+		</th>
+		
+		<th>
+			<select id="mtime">
+			</select>
+		</th>
+		<th id="mtheater">
+		</th>
+	</tr>
+</tbody>
+</table>
+<br><br>
+
+
+<table id="seat" border="1"><col width="700px"><col width="350px">
+<thead align="center">
+	<tr>
+		<th>좌석선택</th>
+		<th>내역/결제</th>
+	</tr>
+</thead>
+
+<tbody align="center">
+	<tr>
+		<th><br>
+			<div><h2>SCREEN</h2><br></div>
+			<div id="ticket"></div><br>
+			<button id="seatpick">좌석선택</button>
+		</th>
+		<th id="tpay" align="right">
+			<div align="center">
+				영화제목 : <input readonly="readonly" size="25px" id="paytitle"><br>
+				상영시간 : <input readonly="readonly" size="25px" id="paysdate"><br>&nbsp;
+				상영관 : <input readonly="readonly" size="25px" id="paytheater"><br>&nbsp;&nbsp;&nbsp;&nbsp;
+				좌석  : <input readonly="readonly" size="25px" id="payseat">
+			</div>
+			<br><br><br>
+			<div align="right">
+				<input id="price" type="hidden" value="11000" readonly="readonly">금액: 11000원
+				<button>결제하기</button>
+			</div>
+		</th>
+		
+	</tr>
+</tbody>
+</table>
+</div>
